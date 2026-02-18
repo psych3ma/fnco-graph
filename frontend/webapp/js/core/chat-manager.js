@@ -6,6 +6,7 @@
 import { stateManager } from './state-manager.js';
 import { safeExecute, ErrorType } from '../utils/error-handler.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
+import { apiClient } from '../api-client.js';
 
 /**
  * 챗봇 관리자 클래스
@@ -33,7 +34,7 @@ export class ChatManager {
    * 제안 질문 전송
    * @param {HTMLElement} button - 버튼 요소
    */
-  sendSuggestion(button) {
+  async sendSuggestion(button) {
     const question = button.dataset.q;
     if (!question) return;
     
@@ -41,13 +42,13 @@ export class ChatManager {
     if (sugState) sugState.style.display = 'none';
     
     this.appendMessage('user', question);
-    this.simulateAIReply(question);
+    await this.simulateAIReply(question);
   }
 
   /**
    * 채팅 전송
    */
-  sendChat() {
+  async sendChat() {
     if (!this.inputElement) return;
     
     const message = this.inputElement.value.trim();
@@ -57,7 +58,7 @@ export class ChatManager {
     this.autoResizeTextarea(this.inputElement);
     
     this.appendMessage('user', message);
-    this.simulateAIReply(message);
+    await this.simulateAIReply(message);
   }
 
   /**
@@ -95,10 +96,10 @@ export class ChatManager {
   }
 
   /**
-   * AI 응답 시뮬레이션
+   * AI 응답 (실제 API 호출)
    * @param {string} question - 질문
    */
-  simulateAIReply(question) {
+  async simulateAIReply(question) {
     if (!this.messagesContainer) return;
     
     const typingEl = document.createElement('div');
@@ -112,25 +113,34 @@ export class ChatManager {
     this.messagesContainer.appendChild(typingEl);
     this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
     
-    // 실제로는 API 호출
-    const context = stateManager.getState('chat.context');
-    const replies = [
-      context 
-        ? `'${context.id}'와 연결된 노드를 Neo4j Cypher로 조회하면 관련 지분 관계가 확인됩니다.`
-        : '연결된 노드를 Neo4j Cypher로 조회하면 관련 지분 관계가 확인됩니다.',
-      '현재 그래프 기준으로 지분율 50% 이상 최대주주는 총 3건 확인됩니다.',
-      `Cypher: \`MATCH (n)-[r:HOLDS_SHARE]->(m) WHERE r.pct >= 50 RETURN n, r, m\``,
-      '국민연금은 현재 2개 법인에 5% 이상 지분을 보유하고 있습니다.'
-    ];
-    
-    setTimeout(() => {
+    try {
+      // 컨텍스트 정보 준비
+      const context = stateManager.getState('chat.context');
+      const chatContext = context ? { node_id: context.id } : null;
+      
+      // API 호출
+      const response = await apiClient.sendChatMessage(question, chatContext);
+      
+      // 타이핑 애니메이션 제거
       const typing = document.getElementById('typingEl');
       if (typing) typing.remove();
       
-      const reply = replies[Math.floor(Math.random() * replies.length)];
+      // 응답 표시
+      const reply = response.response || '응답을 생성할 수 없습니다.';
       this.appendMessage('ai', reply);
       announceToScreenReader(`AI 응답: ${reply}`);
-    }, 1100);
+    } catch (error) {
+      console.error('[ChatManager] AI 응답 실패:', error);
+      
+      // 타이핑 애니메이션 제거
+      const typing = document.getElementById('typingEl');
+      if (typing) typing.remove();
+      
+      // 에러 메시지 표시
+      const errorMsg = '응답을 생성하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      this.appendMessage('ai', errorMsg);
+      announceToScreenReader(`오류: ${errorMsg}`);
+    }
   }
 
   /**

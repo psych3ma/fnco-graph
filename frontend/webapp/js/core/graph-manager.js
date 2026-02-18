@@ -15,11 +15,18 @@ export class GraphManager {
     this.network = null;
     this.visNodes = null;
     this.visEdges = null;
+    // 실제 스키마 라벨에 맞춘 타입 메타데이터
     this.typeMeta = {
-      company: { label: '회사', color: '#f97316' },
-      person: { label: '개인주주', color: '#ef4444' },
-      major: { label: '최대주주', color: '#f59e0b' },
-      institution: { label: '기관', color: '#6366f1' }
+      Company: { label: '회사', color: '#f97316', type: 'company' },
+      Person: { label: '개인주주', color: '#ef4444', type: 'person' },
+      Stockholder: { label: '주주', color: '#f59e0b', type: 'major' },
+      MajorShareholder: { label: '주요주주', color: '#f59e0b', type: 'major' },
+      LegalEntity: { label: '법인', color: '#f97316', type: 'company' },
+      // 하위 호환성
+      company: { label: '회사', color: '#f97316', type: 'company' },
+      person: { label: '개인주주', color: '#ef4444', type: 'person' },
+      major: { label: '주주', color: '#f59e0b', type: 'major' },
+      institution: { label: '기관', color: '#6366f1', type: 'institution' }
     };
   }
 
@@ -102,7 +109,9 @@ export class GraphManager {
       throw new Error('Invalid node: missing id');
     }
 
-    const meta = this.typeMeta[node.type] || this.typeMeta.company;
+    // 실제 스키마 라벨 사용 (node.label이 실제 Neo4j 라벨)
+    const nodeLabel = node.label || node.type || 'Node';
+    const meta = this.typeMeta[nodeLabel] || this.typeMeta.Company || this.typeMeta.company;
     const color = meta.color;
 
     return {

@@ -6,6 +6,7 @@
 import { stateManager } from './state-manager.js';
 import { safeExecute, ErrorType } from '../utils/error-handler.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
+import { apiClient } from '../api-client.js';
 
 /**
  * 패널 관리자 클래스
@@ -14,10 +15,17 @@ export class PanelManager {
   constructor() {
     this.detailContainer = null;
     this.chatContainer = null;
+    // 실제 스키마 라벨에 맞춘 타입 메타데이터
     this.typeMeta = {
+      Company: { label: '회사', color: '#f97316' },
+      Person: { label: '개인주주', color: '#ef4444' },
+      Stockholder: { label: '주주', color: '#f59e0b' },
+      MajorShareholder: { label: '주요주주', color: '#f59e0b' },
+      LegalEntity: { label: '법인', color: '#f97316' },
+      // 하위 호환성
       company: { label: '회사', color: '#f97316' },
       person: { label: '개인주주', color: '#ef4444' },
-      major: { label: '최대주주', color: '#f59e0b' },
+      major: { label: '주주', color: '#f59e0b' },
       institution: { label: '기관', color: '#6366f1' }
     };
   }
@@ -46,28 +54,78 @@ export class PanelManager {
   }
 
   /**
-   * 노드 상세 정보 렌더링
+   * 노드 상세 정보 렌더링 (실제 API 사용)
    * @param {Object} node - 노드 데이터
    */
-  renderNodeDetail(node) {
-    return safeExecute(() => {
+  async renderNodeDetail(node) {
+    return safeExecute(async () => {
       if (!this.detailContainer) return;
 
-      const meta = this.typeMeta[node.type] || this.typeMeta.company;
-      const inLinks = stateManager.getState('graph.rawLinks')?.filter(l => l.target === node.id) || [];
-      const outLinks = stateManager.getState('graph.rawLinks')?.filter(l => l.source === node.id) || [];
-      const totalConn = inLinks.length + outLinks.length;
-
-      const connectedNodes = [
-        ...outLinks.map(l => ({ id: l.target, pct: l.pct, dir: 'out' })),
-        ...inLinks.map(l => ({ id: l.source, pct: l.pct, dir: 'in' }))
-      ];
+      // 실제 스키마 라벨 사용
+      const nodeLabel = node.label || node.type || 'Company';
+      const meta = this.typeMeta[nodeLabel] || this.typeMeta.Company || this.typeMeta.company;
+      
+      // API에서 노드 상세 정보 가져오기 시도
+      let nodeDetail = null;
+      try {
+        nodeDetail = await apiClient.getNodeDetail(node.id);
+      } catch (error) {
+        console.warn('[PanelManager] API 조회 실패, 로컬 데이터 사용:', error);
+      }
+      
+      // API 데이터가 있으면 사용, 없으면 로컬 데이터 사용
+      let inLinks, outLinks, connectedNodes, maxPct, shCount, totalConn;
+      
+      if (nodeDetail && nodeDetail.relationships) {
+        // API 데이터 사용
+        const relationships = nodeDetail.relationships;
+        const nodeProps = nodeDetail.node?.n || nodeDetail.node || node.properties || {};
+        
+        // 관계를 in/out으로 분류
+        inLinks = relationships.filter(r => {
+          const targetId = this.extractNodeIdFromRecord(r.m || {}, r);
+          return targetId === node.id;
+        });
+        outLinks = relationships.filter(r => {
+          const sourceId = this.extractNodeIdFromRecord(r.n || {}, r);
+          return sourceId === node.id;
+        });
+        
+        connectedNodes = [
+          ...outLinks.map(r => ({
+            id: this.extractNodeIdFromRecord(r.m || {}, r),
+            pct: r.r?.stockRatio || r.r?.properties?.stockRatio || null,
+            dir: 'out',
+            displayName: (r.m || {}).companyName || (r.m || {}).stockName
+          })),
+          ...inLinks.map(r => ({
+            id: this.extractNodeIdFromRecord(r.n || {}, r),
+            pct: r.r?.stockRatio || r.r?.properties?.stockRatio || null,
+            dir: 'in',
+            displayName: (r.n || {}).companyName || (r.n || {}).stockName
+          }))
+        ];
+        
+        totalConn = relationships.length;
+        maxPct = nodeProps.maxStockRatio || (outLinks[0]?.r?.stockRatio ?? '-');
+        shCount = nodeProps.totalInvestmentCount || '-';
+      } else {
+        // 로컬 데이터 사용 (fallback)
+        inLinks = stateManager.getState('graph.rawLinks')?.filter(l => l.target === node.id) || [];
+        outLinks = stateManager.getState('graph.rawLinks')?.filter(l => l.source === node.id) || [];
+        totalConn = inLinks.length + outLinks.length;
+        
+        connectedNodes = [
+          ...outLinks.map(l => ({ id: l.target, pct: l.pct, dir: 'out' })),
+          ...inLinks.map(l => ({ id: l.source, pct: l.pct, dir: 'in' }))
+        ];
+        
+        maxPct = node.shareholders?.[0]?.pct ?? (outLinks[0]?.pct ?? '-');
+        shCount = node.shareholders?.length ?? '-';
+      }
 
       const SHOW_INIT = 3;
       const overflow = connectedNodes.slice(SHOW_INIT);
-
-      const maxPct = node.shareholders?.[0]?.pct ?? (outLinks[0]?.pct ?? '-');
-      const shCount = node.shareholders?.length ?? '-';
 
       const detailHTML = this.buildDetailHTML(node, meta, connectedNodes, overflow, maxPct, shCount, totalConn);
       
@@ -104,18 +162,20 @@ export class PanelManager {
 
     const connItem = (c) => {
       const cRaw = stateManager.getState('graph.rawNodes')?.find(n => n.id === c.id);
-      const cMeta = cRaw ? this.typeMeta[cRaw.type] : { color: '#888' };
+      const cLabel = cRaw?.label || cRaw?.type || 'Node';
+      const cMeta = cRaw ? (this.typeMeta[cLabel] || this.typeMeta.Company || { color: '#888' }) : { color: '#888' };
       const edgeLabel = c.dir === 'out' ? '투자→' : '←투자';
+      const displayName = c.displayName || c.id;
       return `
         <div class="related-item" 
              onclick="window.graphManager?.focusNode('${c.id}')"
              role="button"
              tabindex="0"
-             aria-label="${c.id} 노드로 이동">
+             aria-label="${displayName} 노드로 이동">
           <div class="ri-dot" style="background:${cMeta.color}"></div>
-          <div class="ri-name">${this.escapeHtml(c.id)}</div>
+          <div class="ri-name">${this.escapeHtml(displayName)}</div>
           <span class="ri-edge-label">${edgeLabel}</span>
-          ${c.pct != null ? `<span class="ri-val">${c.pct}%</span>` : ''}
+          ${c.pct != null ? `<span class="ri-val">${c.pct.toFixed(2)}%</span>` : ''}
           <span class="ri-arrow">›</span>
         </div>`;
     };
@@ -377,6 +437,23 @@ export class PanelManager {
         }
       });
     });
+  }
+
+  /**
+   * 레코드에서 노드 ID 추출
+   * @private
+   */
+  extractNodeIdFromRecord(nodeObj, record) {
+    if (!nodeObj) return 'unknown';
+    
+    // 실제 스키마에 맞는 ID 추출
+    if (nodeObj.bizno) return nodeObj.bizno;
+    if (nodeObj.personId) return nodeObj.personId;
+    if (nodeObj.id) return nodeObj.id;
+    if (nodeObj.companyName) return nodeObj.companyName;
+    if (nodeObj.stockName) return nodeObj.stockName;
+    
+    return 'unknown';
   }
 
   /**

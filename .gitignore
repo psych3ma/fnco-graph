@@ -24,3 +24,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Temporary guide files
+ACTION_ITEMS.md
+FIX_COMMANDS.md
