@@ -32,6 +32,10 @@ class ChatMessage(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    """챗봇 응답 모델"""
+    """챗봇 응답 모델 (참조 ask_graph 호환: cypher/raw/source 등 선택)"""
     response: str
     graph_data: Optional[GraphData] = None
+    cypher: Optional[str] = None
+    raw: Optional[List[Dict[str, Any]]] = None
+    source: Optional[str] = None
+    elapsed: Optional[float] = None

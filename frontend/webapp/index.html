@@ -10,6 +10,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/loading-variants.css">
+<link rel="stylesheet" href="css/loading-variants.css">
 </head>
 <body>
 
@@ -74,11 +76,24 @@
   <div class="graph-area" id="graphArea" role="main" aria-label="그래프 시각화 영역">
 
     <div class="loading-overlay" id="loadingOverlay" aria-live="polite" aria-busy="true">
+      <!-- 스피너: 전체 프로세스 진행 중 표시 -->
       <div class="loading-spinner" aria-hidden="true"></div>
-      <div class="loading-text" id="loadingText">그래프 데이터 불러오는 중…</div>
-      <div class="loading-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+      <!-- 메시지: 현재 단계 표시 -->
+      <div class="loading-message-wrap">
+        <div class="loading-text" id="loadingText">그래프 데이터 불러오는 중…</div>
+        <div class="loading-guidance" id="loadingGuidance"></div>
+      </div>
+      <!-- 프로그레스바: 실제 진행률이 있을 때만 표시 (indeterminate 모드로 자동 전환) -->
+      <div class="loading-progress" 
+           role="progressbar" 
+           aria-valuenow="0" 
+           aria-valuemin="0" 
+           aria-valuemax="100"
+           aria-label="로딩 중...">
         <div class="loading-bar" id="loadingBar"></div>
       </div>
+      <!-- 단계 인디케이터 (하이브리드 디자인용) -->
+      <div class="loading-steps" id="loadingSteps" aria-label="로딩 단계"></div>
     </div>
 
     <div id="visNetwork" aria-label="그래프 네트워크"></div>
@@ -143,7 +158,9 @@
        SIDE PANEL
   ══════════════════════════════════ -->
   <div class="side-panel" id="sidePanel" role="complementary" aria-label="상세 정보 패널">
-
+    <button type="button" class="panel-toggle-btn" id="panelToggle" onclick="window.app?.togglePanel?.()" aria-label="패널 접기/펼치기">
+      <svg width="8" height="12" viewBox="0 0 8 12" fill="none" aria-hidden="true"><path d="M2 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
     <!-- ── TABS ── -->
     <div class="panel-tabs" role="tablist" aria-label="패널 탭">
       <button class="ptab active" 
@@ -161,7 +178,7 @@
     </div>
 
     <!-- ego banner -->
-    <div class="ego-banner" id="egoBanner" role="alert" aria-live="polite">
+    <div class="ego-banner" id="egoBanner" role="region" aria-label="지배구조 맵" aria-live="polite">
       <span class="ego-banner-label">지배구조 맵 (Ego-Graph)</span>
       <button class="ego-exit-btn" 
               onclick="window.panelManager?.exitEgoGraph()"
@@ -282,7 +299,10 @@
 ═══════════════════════════════════ -->
 <script type="module">
   // API Base URL 설정 (환경 변수 또는 기본값)
-  window.API_BASE_URL = window.API_BASE_URL || 'http://localhost:8000';
+  // 설정은 constants.js에서 관리됨
+  window.API_BASE_URL = window.API_BASE_URL || 
+                        import.meta.env?.VITE_API_BASE_URL || 
+                        'http://localhost:8000';
 </script>
 <script type="module" src="js/app.js"></script>
 

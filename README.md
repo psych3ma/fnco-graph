@@ -1,44 +1,29 @@
-# Graph DB Visualization & Chatbot Service
+# 문서 (docs)
 
-Streamlit + FastAPI + Neo4j + vis.js 기반 그래프 데이터베이스 시각화 및 챗봇 서비스
+프로젝트 루트의 **README.md**를 제외한 마크다운 문서는 모두 이 디렉터리에 있습니다.  
+협업·확장성: 새 문서 추가 시 이 인덱스에 카테고리만 정리해 두면 됩니다.
 
-## 구조
+---
 
-- `backend/`: FastAPI 서버 (API 엔드포인트 및 비즈니스 로직)
-- `frontend/`: Streamlit 웹 애플리케이션 (UI 및 시각화)
+## 빠른 참조
 
-## 설치 및 실행
+| 용도 | 문서 |
+|------|------|
+| 빠른 시작 | [QUICK_START.md](QUICK_START.md) |
+| 커밋 전 점검 | [COMMIT_CHECKLIST.md](COMMIT_CHECKLIST.md), [CTO_PRE_COMMIT_REVIEW.md](CTO_PRE_COMMIT_REVIEW.md) |
+| 노드/속성 표시 규격 | [NODE_PROPERTIES_DISPLAY_SPEC.md](NODE_PROPERTIES_DISPLAY_SPEC.md) |
+| Neo4j/연결 | [NEO4J_INTEGRATION.md](NEO4J_INTEGRATION.md), [QUICK_START.md](QUICK_START.md) (문제 해결) |
+| 백엔드 서버 기동 | [BACKEND_SERVER_STARTUP.md](BACKEND_SERVER_STARTUP.md) |
+| 레이아웃/반응형 | [CTO_LAYOUT_WIDTH_ANALYSIS.md](CTO_LAYOUT_WIDTH_ANALYSIS.md) |
 
-1. 의존성 설치:
-```bash
-pip install -r requirements.txt
-```
+---
 
-2. 환경 변수 설정:
-```bash
-cp .env.example .env
-# .env 파일을 편집하여 Neo4j 및 OpenAI 설정 입력
-```
+## 카테고리
 
-3. Neo4j 실행 (Docker 사용 시):
-```bash
-docker-compose up -d neo4j
-```
+- **Backend / CTO 리뷰**: `BACKEND_*.md`, `BACKEND_CTO_*.md`
+- **Frontend / UX**: `FRONTEND_*.md`, `UX_*.md`, `DESIGN_*.md`
+- **Neo4j / 그래프**: `NEO4J_*.md`, `GRAPH_DB_*.md`, `SCHEMA_*.md`, `INTEGRATION_*.md`
+- **CTO / 검토**: `CTO_*.md`, `*_REVIEW*.md`
+- **가이드/트러블슈팅**: `QUICK_*.md`, `CONNECTION_*.md`, `PORT_*.md`, `RESTART_*.md`, `GIT_GUIDE.md`
 
-4. Backend 서버 실행:
-```bash
-cd backend
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-5. Frontend 실행:
-```bash
-cd frontend
-streamlit run app.py
-```
-
-## Docker Compose로 전체 실행
-
-```bash
-docker-compose up
-```
+파일명으로 검색하면 됩니다.

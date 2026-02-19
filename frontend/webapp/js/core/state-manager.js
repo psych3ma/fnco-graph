@@ -3,13 +3,15 @@
  * @module core/state-manager
  */
 
+import { DEFAULT_FILTERS } from '../config/constants.js';
+
 /**
  * 애플리케이션 상태 관리 클래스
  */
 export class StateManager {
   constructor() {
     this.state = {
-      filters: new Set(['company', 'person', 'major', 'institution']),
+      filters: new Set(DEFAULT_FILTERS),
       selectedNode: null,
       chat: {
         history: [],
@@ -129,7 +131,7 @@ export class StateManager {
    */
   reset() {
     this.state = {
-      filters: new Set(['company', 'person', 'major', 'institution']),
+      filters: new Set(DEFAULT_FILTERS),
       selectedNode: null,
       chat: {
         history: [],

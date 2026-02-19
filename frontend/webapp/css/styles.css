@@ -2,13 +2,13 @@
    DESIGN TOKENS
 ════════════════════════════════════════ */
 :root {
-  /* graph canvas (dark) */
-  --canvas-bg:     #0e0f13;
-  --canvas-surf:   #16181f;
-  --canvas-surf2:  #1e2130;
-  --canvas-border: #2a2d3e;
-  --canvas-text:   #e8eaf0;
-  --canvas-dim:    #7a7f99;
+  /* graph canvas: 사이드패널과 동일한 밝은 배경으로 통일 (디자이너/CTO: 색상 일관성) */
+  --canvas-bg:     #faf8f5;
+  --canvas-surf:   #f5f1ec;
+  --canvas-surf2:  #f0ebe3;
+  --canvas-border: #e2dbd0;
+  --canvas-text:   #1c1a17;
+  --canvas-dim:    #5a5349;
 
   /* panel (warm light) */
   --panel-bg:      #faf8f5;
@@ -20,17 +20,25 @@
   --panel-text-2:  #5a5349;
   --panel-text-3:  #9e9488;
 
-  /* shared accent */
-  --accent:        #d85604;
-  --accent-dim:    rgba(216,86,4,.12);
-  --accent-border: #e8c4ae;
-  --accent2:       #3b82f6;
+  /* PwC 브랜드색 (회계법인·클래식 톤, 확장성: 단일 소스) */
+  --pwc-black:     #000000;
+  --pwc-dark-red:  #ad1b02;
+  --pwc-orange:    #d85604;
+  --pwc-goldenrod: #e88d14;
+  --pwc-gold:      #f3be26;
+  --pwc-pink:      #e669a2;
 
-  /* node palette */
-  --c-company:     #f97316;
-  --c-person:      #ef4444;
-  --c-major:       #f59e0b;
-  --c-institution: #6366f1;
+  /* shared accent = PwC 오렌지 (하이라이트·CTA·활성 상태) */
+  --accent:        var(--pwc-orange);
+  --accent-dim:    rgba(216,86,4,.1);
+  --accent-border: #e8c4ae;
+  --accent-strong: var(--pwc-dark-red);
+
+  /* node palette: PwC 팔레트 매핑 (클래식·일관성) */
+  --c-company:     var(--pwc-orange);
+  --c-person:     var(--pwc-dark-red);
+  --c-major:      var(--pwc-goldenrod);
+  --c-institution:#5a5349;
 
   /* error/success */
   --error:         #ef4444;
@@ -43,6 +51,8 @@
   --radius:    10px;
   --radius-sm: 6px;
   --mono: 'IBM Plex Mono', monospace;
+  /* 협업: 반응형 브레이크포인트. 패널 모바일 전환은 이 값 이하에서만 적용 (768보다 낮춰 도구 열기 시 깜빡임 방지) */
+  --bp-panel-mobile: 640px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -194,7 +204,7 @@ header {
   padding: 0 14px 0 36px;
   outline: none; transition: border-color .2s;
 }
-.search-wrap input:focus { border-color: var(--accent); }
+.search-wrap input:focus { border-color: var(--canvas-border); outline: none; }
 .search-wrap input::placeholder { color: var(--canvas-dim); }
 .search-icon {
   position: absolute; left: 11px; top: 50%;
@@ -229,11 +239,12 @@ header {
   transition: all .2s; white-space: nowrap;
 }
 .chip .dot { width: 7px; height: 7px; border-radius: 50%; }
-.chip.active { color: #fff; }
-.chip.active.company     { background: rgba(249,115,22,.18); border-color: var(--c-company); }
-.chip.active.person      { background: rgba(239,68,68,.18);  border-color: var(--c-person); }
-.chip.active.major       { background: rgba(245,158,11,.18); border-color: var(--c-major); }
-.chip.active.institution { background: rgba(99,102,241,.18); border-color: var(--c-institution); }
+/* 활성 칩: PwC 톤 통일 — 밝은 배경 + 테두리/텍스트 강조 (클래식) */
+.chip.active { color: var(--canvas-text); }
+.chip.active.company     { background: rgba(216,86,4,.12);  border-color: var(--c-company); color: var(--pwc-orange, #d85604); }
+.chip.active.person      { background: rgba(173,27,2,.12);  border-color: var(--c-person); color: var(--pwc-dark-red, #ad1b02); }
+.chip.active.major       { background: rgba(232,141,20,.12); border-color: var(--c-major); color: var(--pwc-goldenrod, #e88d14); }
+.chip.active.institution { background: rgba(90,83,73,.12);   border-color: var(--c-institution); color: var(--canvas-dim); }
 .chip .dot.company     { background: var(--c-company); }
 .chip .dot.person      { background: var(--c-person); }
 .chip .dot.major       { background: var(--c-major); }
@@ -249,15 +260,20 @@ header {
 ════════════════════════════════════════ */
 .graph-area {
   flex: 1; position: relative; overflow: hidden;
+  min-width: 0; /* flex 리플로우 시 폭 계산 안정 (협업: CTO_LAYOUT_WIDTH_ANALYSIS) */
+  /* CTO: 그래프와 마우스/터치/스크롤 싱크 - 터치 시 문서 스크롤 방지, 줌/팬만 그래프에 적용 */
+  touch-action: none;
+  user-select: none;
   background:
-    radial-gradient(ellipse at 30% 20%, rgba(216,86,4,.06) 0%, transparent 55%),
-    radial-gradient(ellipse at 70% 80%, rgba(99,102,241,.05) 0%, transparent 55%),
+    radial-gradient(ellipse at 30% 20%, rgba(216,86,4,.04) 0%, transparent 55%),
+    radial-gradient(ellipse at 70% 80%, rgba(99,102,241,.03) 0%, transparent 55%),
     var(--canvas-bg);
 }
 
 #visNetwork {
   width: 100%; height: 100%;
   background: transparent !important;
+  touch-action: none;
 }
 #visNetwork canvas { background: transparent !important; }
 
@@ -266,20 +282,83 @@ header {
   position: absolute; inset: 0;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  gap: 16px; background: var(--canvas-bg); z-index: 50;
-  transition: opacity .4s;
+  gap: 16px; background: rgba(250,248,245,.95);
+  backdrop-filter: blur(8px);
+  z-index: 50;
+  transition: opacity .3s;
 }
 .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+.loading-overlay.error-state {
+  background: rgba(250,248,245,.98);
+}
+.loading-overlay.error-state .loading-text {
+  color: var(--error);
+}
 .loading-spinner {
   width: 40px; height: 40px;
   border: 3px solid var(--canvas-border);
   border-top-color: var(--accent);
-  border-radius: 50%; animation: spin .8s linear infinite;
+  border-radius: 50%; 
+  animation: spin 1s linear infinite;
 }
-.loading-text { color: var(--canvas-dim); font-size: 13px; }
-.loading-progress { width: 200px; height: 3px; background: var(--canvas-border); border-radius: 3px; overflow: hidden; }
-.loading-bar { height: 100%; background: var(--accent); border-radius: 3px; width: 0%; transition: width .3s; }
-@keyframes spin { to { transform: rotate(360deg); } }
+.loading-overlay.error-state .loading-spinner {
+  border-top-color: var(--error);
+  animation: none;
+}
+.loading-text { 
+  color: var(--canvas-dim); 
+  font-size: 13px; 
+  transition: color .3s;
+  text-align: center;
+  max-width: 300px;
+}
+.loading-text.error {
+  color: var(--error);
+}
+.loading-progress { 
+  width: 200px; 
+  height: 3px; 
+  background: var(--canvas-border); 
+  border-radius: 3px; 
+  overflow: hidden; 
+}
+.loading-bar { 
+  height: 100%; 
+  background: var(--accent); 
+  border-radius: 3px; 
+  width: 0%; 
+  transition: width .2s ease-out; 
+}
+.loading-overlay.error-state .loading-bar {
+  background: var(--error);
+}
+
+/* Indeterminate 프로그레스바 스타일 (불확실한 진행률) */
+.loading-progress.indeterminate .loading-bar {
+  width: 100% !important;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--accent) 30%,
+    var(--accent) 70%,
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: indeterminate-progress 1.5s ease-in-out infinite;
+}
+
+@keyframes spin { 
+  to { transform: rotate(360deg); } 
+}
+
+@keyframes indeterminate-progress {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
 
 /* canvas tooltip */
 #graphTooltip {
@@ -320,11 +399,12 @@ header {
 }
 .stat-pill strong { color: var(--accent); }
 
-/* legend */
+/* legend: 리사이즈 시 잘림 방지 (영역 안에 유지) */
 .graph-legend {
   position: absolute; left: 16px; bottom: calc(34px * 3 + 4px * 2 + 24px);
   background: var(--canvas-surf); border: 1px solid var(--canvas-border);
   border-radius: 10px; padding: 10px 14px; font-size: 12px; min-width: 140px;
+  max-width: calc(100% - 32px); box-sizing: border-box;
 }
 .legend-title {
   font-size: 10px; color: var(--canvas-dim); text-transform: uppercase;
@@ -338,12 +418,12 @@ header {
 .lc {
   width: 9px; height: 9px; border-radius: 50%; border: 2px solid; flex-shrink: 0;
 }
-.legend-row[data-type="company"]     .lc { border-color: var(--c-company);     background: rgba(249,115,22,.2); }
-.legend-row[data-type="person"]      .lc { border-color: var(--c-person);      background: rgba(239,68,68,.2); }
-.legend-row[data-type="major"]       .lc { border-color: var(--c-major);       background: rgba(245,158,11,.2); }
-.legend-row[data-type="institution"] .lc { border-color: var(--c-institution); background: rgba(99,102,241,.2); }
-.legend-label { flex: 1; color: var(--canvas-text); font-size: 11.5px; }
-.legend-count { font-family: var(--mono); color: var(--canvas-dim); font-size: 10px; }
+.legend-row[data-type="company"]     .lc { border-color: var(--c-company);     background: rgba(216,86,4,.18); }
+.legend-row[data-type="person"]      .lc { border-color: var(--c-person);      background: rgba(173,27,2,.18); }
+.legend-row[data-type="major"]       .lc { border-color: var(--c-major);       background: rgba(232,141,20,.18); }
+.legend-row[data-type="institution"] .lc { border-color: var(--c-institution); background: rgba(90,83,73,.18); }
+.legend-label { flex: 1; min-width: 0; color: var(--canvas-text); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.legend-count { font-family: var(--mono); color: var(--canvas-dim); font-size: 10px; flex-shrink: 0; }
 
 /* ════════════════════════════════════════
    SIDE PANEL  (warm light theme)
@@ -357,6 +437,29 @@ header {
   position: relative;
   transition: width .25s ease;
 }
+.panel-toggle-btn {
+  position: absolute;
+  left: -28px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  color: var(--panel-text-2);
+  cursor: pointer;
+  transition: color .15s, background .15s;
+  z-index: 2;
+}
+.panel-toggle-btn:hover { color: var(--accent); background: var(--panel-surf); }
+.side-panel.collapsed { width: 0; min-width: 0; overflow: hidden; }
+.side-panel.collapsed .panel-toggle-btn { left: -28px; }
+.side-panel.collapsed .panel-toggle-btn svg { transform: rotate(180deg); }
 
 /* tabs */
 .panel-tabs {
@@ -405,24 +508,58 @@ header {
 /* ── DETAIL TAB ── */
 .panel-body {
   flex: 1; overflow-y: auto; overflow-x: hidden;
+  min-width: 0; /* flex 자식이 패널 폭 안에서 줄어들 수 있도록 (협업: CTO_LAYOUT_WIDTH_ANALYSIS) */
 }
 .panel-body::-webkit-scrollbar { width: 3px; }
 .panel-body::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 2px; }
 
-/* empty state */
+/* empty state: 리사이즈 시 텍스트 잘림 방지 (min-width: 0 + 줄바꿈) */
 .panel-empty {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 14px; min-height: 300px; height: 100%;
   padding: 40px 24px; color: var(--panel-text-3); text-align: center;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 .panel-empty svg { opacity: .45; }
-.panel-empty p { font-size: 13px; line-height: 1.7; color: var(--panel-text-2); }
-.panel-empty span { font-size: 11.5px; }
+.panel-empty p {
+  font-size: 13px; line-height: 1.7; color: var(--panel-text-2);
+  word-break: break-word; overflow-wrap: break-word; max-width: 100%;
+}
+.panel-empty span {
+  font-size: 11.5px;
+  word-break: break-word; overflow-wrap: break-word; max-width: 100%;
+}
 
 /* node detail */
-.node-detail { display: none; animation: slideIn .2s ease; }
-.node-detail.visible { display: block; }
+.node-detail {
+  display: none;
+  animation: slideIn .2s ease;
+  flex-direction: column;
+  min-height: 100%;
+}
+.node-detail.visible {
+  display: flex;
+}
+.node-detail-loading .nd-loading {
+  padding: 1rem;
+  color: var(--text-muted, #666);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.node-detail-loading .nd-loading-spinner {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--panel-border-s, #e0ddd8);
+  border-top-color: var(--accent, #d04a02);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
 @keyframes slideIn {
   from { opacity: 0; transform: translateY(5px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -447,10 +584,13 @@ header {
   font-size: 16px; font-weight: 700; color: var(--panel-text-1);
   line-height: 1.3; word-break: keep-all;
 }
+.nd-sub {
+  font-size: 11px; color: var(--panel-text-3); margin-top: 2px;
+}
 
 /* stats strip */
 .nd-stats {
-  display: grid; grid-template-columns: repeat(3,1fr);
+  display: grid; grid-template-columns: repeat(2,1fr);
   gap: 1px; background: var(--panel-border);
   border-top: 1px solid var(--panel-border);
   border-bottom: 1px solid var(--panel-border);
@@ -509,7 +649,7 @@ header {
   cursor: pointer; transition: color .15s; margin-top: 3px;
 }
 .related-more-btn:hover { color: var(--accent); }
-.related-more-btn svg { transition: transform .22s; }
+.related-more-btn .related-more-icon { transition: transform .22s; flex-shrink: 0; }
 
 .related-item-more {
   display: flex; flex-direction: column; gap: 4px;
@@ -549,7 +689,18 @@ header {
 .sh-bar { height: 100%; border-radius: 3px; background: var(--accent); }
 
 /* actions */
-.nd-actions { padding: 13px 18px 16px; display: flex; flex-direction: column; gap: 8px; }
+.nd-actions {
+  padding: 13px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: sticky;
+  bottom: 0;
+  background: var(--panel-bg);
+  border-top: 1px solid var(--panel-border-s);
+  margin-top: auto;
+  z-index: 10;
+}
 .action-btn {
   display: flex; align-items: center; justify-content: center; gap: 7px;
   width: 100%; padding: 10px 16px; border-radius: var(--radius-sm); border: 1px solid;
@@ -674,9 +825,10 @@ header {
 .chat-reset-btn:hover { border-color: var(--accent-border); color: var(--accent); }
 
 /* ════════════════════════════════════════
-   RESPONSIVE
+   RESPONSIVE (협업: 브레이크포인트는 :root --bp-panel-mobile 참고)
+   패널 모바일 전환을 640px 이하로 두어, 768px 전후(개발자도구 등)에서 깜빡임/잘림 방지
 ════════════════════════════════════════ */
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .side-panel {
     position: fixed;
     right: -100%;

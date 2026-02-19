@@ -144,9 +144,10 @@ export class ChatManager {
   }
 
   /**
-   * 채팅 초기화
+   * 채팅 초기화 (서버 대화 이력도 초기화, 참조 서비스 호환)
    */
   resetChat() {
+    apiClient.resetChat?.();
     const history = [];
     stateManager.setState('chat.history', history);
     stateManager.setState('chat.context', null);
